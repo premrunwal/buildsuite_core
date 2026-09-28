@@ -172,7 +172,63 @@ export async function loginWithCredentials(serverUrl, { username, password, auth
 	const cleanUrl = (serverUrl || cachedServerUrl || "").trim().replace(/\/+$/, "");
 	if (!cleanUrl) throw new Error("Server URL not configured");
 
-	// 1. Authenticate with standard Frappe login endpoint
+	// 1. Attempt single-request mobile login
+	let apiKey = "";
+	let apiSecret = "";
+	let user = username;
+
+	try {
+		const mobileLoginRes = await fetch(`${cleanUrl}/api/method/buildsuite_core.api.mobile_auth.mobile_login`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+			},
+			body: JSON.stringify({ usr: username, pwd: password }),
+		});
+
+		if (mobileLoginRes.ok) {
+			const resData = await mobileLoginRes.json();
+			const payload = resData.message || resData;
+			apiKey = payload.api_key || "";
+			apiSecret = payload.api_secret || "";
+			user = payload.user || username;
+
+			await setStoredAuth({
+				apiKey,
+				apiSecret,
+				user,
+				authType,
+			});
+
+			return { user, apiKey, apiSecret, authType };
+		}
+
+		// If 401/403 with specific error message
+		if (mobileLoginRes.status === 401 || mobileLoginRes.status === 403) {
+			let errMsg = "Invalid username or password";
+			try {
+				const errData = await mobileLoginRes.json();
+				if (errData.message) errMsg = errData.message;
+				else if (errData._server_messages) {
+					const parsed = JSON.parse(errData._server_messages);
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						errMsg = JSON.parse(parsed[0]).message || errMsg;
+					}
+				}
+			} catch {
+				// ignore
+			}
+			throw new Error(errMsg);
+		}
+	} catch (err) {
+		if (err.message && !err.message.includes("404") && !err.message.includes("Failed to fetch")) {
+			throw err;
+		}
+		// Fallback to legacy two-step login if mobile_login endpoint is not found
+	}
+
+	// 2. Fallback: Authenticate with standard Frappe login endpoint
 	const loginRes = await fetch(`${cleanUrl}/api/method/login`, {
 		method: "POST",
 		headers: {
@@ -196,11 +252,6 @@ export async function loginWithCredentials(serverUrl, { username, password, auth
 
 	const loginData = await loginRes.json();
 	const loggedInUser = loginData.full_name ? username : username;
-
-	// 2. Obtain / generate API Key & Secret via our whitelisted endpoint
-	let apiKey = "";
-	let apiSecret = "";
-	let user = loggedInUser;
 
 	try {
 		const tokenRes = await fetch(`${cleanUrl}/api/method/buildsuite_core.api.mobile_auth.get_or_create_api_keys`, {
