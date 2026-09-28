@@ -64,19 +64,20 @@ async function handleLogin() {
 
 	isLoading.value = true;
 	try {
-		await loginWithCredentials(serverUrl.value, {
+		const authResult = await loginWithCredentials(serverUrl.value, {
 			username: username.value.trim(),
 			password: password.value,
 			authType: authType.value,
 		});
 
-		// Refresh session store with new access context
-		await sessionStore.recheckAccess();
+		sessionStore.user = authResult.user;
+		sessionStore.authenticated = true;
 
-		if (!sessionStore.access?.allowed) {
-			errorMessage.value = "Your account does not have permission to access BuildSuite Core.";
-			isLoading.value = false;
-			return;
+		// Refresh session store with new access context
+		try {
+			await sessionStore.recheckAccess();
+		} catch (e) {
+			console.warn("[login] Access recheck warning", e);
 		}
 
 		// Initialize data stores
@@ -93,9 +94,6 @@ async function handleLogin() {
 		const redirect = route.query.redirect;
 		if (redirect && redirect !== "/login" && redirect !== "/server-url") {
 			router.push(redirect);
-		} else if (authType.value === "supervisor") {
-			// Field supervisors prioritize attendance / site execution
-			router.push("/home");
 		} else {
 			router.push("/home");
 		}
