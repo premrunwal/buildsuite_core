@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils.password import get_decrypted_password, set_encrypted_password
 
 
 def _get_or_generate_api_keys(user):
@@ -10,15 +11,25 @@ def _get_or_generate_api_keys(user):
 
 	if api_key:
 		try:
-			api_secret = user_doc.get_password("api_secret")
+			api_secret = get_decrypted_password("User", user, fieldname="api_secret", raise_exception=False)
 		except Exception:
-			api_secret = None
+			try:
+				api_secret = user_doc.get_password("api_secret")
+			except Exception:
+				api_secret = None
 
 	if not api_key or not api_secret:
 		api_key = frappe.generate_hash(length=15)
 		api_secret = frappe.generate_hash(length=15)
 		frappe.db.set_value("User", user, "api_key", api_key, update_modified=False)
-		user_doc.set_password("api_secret", api_secret)
+		try:
+			set_encrypted_password("User", user, api_secret, fieldname="api_secret")
+		except Exception:
+			try:
+				user_doc.api_secret = api_secret
+				user_doc.save(ignore_permissions=True)
+			except Exception:
+				pass
 		frappe.db.commit()
 
 	return api_key, api_secret
