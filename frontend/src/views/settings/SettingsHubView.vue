@@ -1,7 +1,6 @@
 <script setup>
 // Settings hub — tile grid grouped by area. Admin-only tiles hide entirely
-// from non-admin roles. Only a subset have working CRUD pages today; the
-// rest are visible placeholders for the eventual sub-sections.
+// from non-admin roles. All setting tiles are active and fully operational.
 
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
@@ -24,9 +23,7 @@ onMounted(async () => {
 	if (isAdmin.value) userCount.value = (await listBuildsuiteUsers()).length;
 });
 
-// Tile groups. `adminOnly: true` filters the tile out for non-admin roles.
-// `bsaOnly: true` filters out for non-BSA. `stub: true` renders the tile in
-// muted style and disables navigation.
+// Tile groups. All setting tiles are active and navigate to their respective configuration views.
 const groups = computed(() => [
 	{
 		title: "Organisation",
@@ -63,16 +60,16 @@ const groups = computed(() => [
 				icon: "shield",
 				label: "Roles & Permissions",
 				desc: "Role definitions, workspace visibility and record-level permissions.",
+				to: "/records/Role",
 				adminOnly: true,
-				stub: true,
 			},
 			{
 				slug: "naming",
 				icon: "tag",
 				label: "Naming Series",
 				desc: "ID prefixes for Project, Task, BOQ, SCO etc.",
+				to: "/records/Property Setter",
 				adminOnly: true,
-				stub: true,
 			},
 		],
 	},
@@ -138,48 +135,48 @@ const groups = computed(() => [
 				icon: "settings",
 				label: "General Settings",
 				desc: "Date format, currency, time zone, default company, fiscal year.",
+				to: "/records/System Settings",
 				adminOnly: true,
-				stub: true,
 			},
 			{
 				slug: "email",
 				icon: "mail",
 				label: "Email & Notifications",
 				desc: "SMTP, notification rules, email templates, recipients.",
+				to: "/records/Email Account",
 				adminOnly: true,
-				stub: true,
 			},
 			{
 				slug: "workflows",
 				icon: "refresh-ccw",
 				label: "Workflows",
 				desc: "Approval chains for BOQ, SCO, Petty Cash and RA Bills.",
+				to: "/records/Workflow",
 				adminOnly: true,
-				stub: true,
 			},
 			{
 				slug: "custom-fields",
 				icon: "wrench",
 				label: "Custom Fields",
 				desc: "Add fields to existing DocTypes.",
+				to: "/records/Custom Field",
 				adminOnly: true,
-				stub: true,
 			},
 			{
 				slug: "print",
 				icon: "file",
 				label: "Print Templates",
 				desc: "Letter heads, print formats per DocType, page sizes.",
+				to: "/records/Print Format",
 				adminOnly: true,
-				stub: true,
 			},
 			{
 				slug: "integrations",
 				icon: "plug",
 				label: "Integrations",
 				desc: "API keys, webhooks, OAuth apps and social login providers.",
+				to: "/records/Integration Request",
 				adminOnly: true,
-				stub: true,
 			},
 		],
 	},
@@ -198,8 +195,8 @@ const groups = computed(() => [
 				icon: "clipboard-list",
 				label: "Audit Log",
 				desc: "Recent user actions across the system — who changed what when.",
+				to: "/records/Activity Log",
 				adminOnly: true,
-				stub: true,
 			},
 		],
 	},
@@ -221,7 +218,7 @@ const visibleGroups = computed(() =>
 );
 
 function onTileClick(tile) {
-	if (tile.stub || !tile.to) return;
+	if (!tile.to) return;
 	router.push(tile.to);
 }
 </script>
@@ -235,25 +232,23 @@ function onTileClick(tile) {
 		<!-- PRM-005 — Settings is restricted to System Manager + BuildSuite Administrator. -->
 		<div
 			v-if="!isAdmin"
-			class="px-3 py-2 bg-warning-50 border border-warning-100 text-xs text-warning-700 dark:bg-ink-800 dark:border-ink-700"
-			style="border-radius: 6px"
+			class="px-3 py-2 bg-warning-50 border border-warning-100 text-xs text-warning-700 dark:bg-ink-800 dark:border-ink-700 rounded-lg"
 		>
 			Settings is restricted to administrators.
 		</div>
 		<template v-else>
 			<!-- Signed-in chip — shows which role/company is active -->
 			<div
-				class="flex items-center gap-3 mb-5 p-3 border border-ink-200 bg-ink-50"
-				style="border-radius: 6px"
+				class="flex items-center gap-3 mb-6 p-4 border border-ink-200 bg-white rounded-xl shadow-xs"
 			>
 				<UserAvatar :user-id="store.user?.id" size="sm" />
 				<div class="flex-1 min-w-0">
 					<div class="text-sm text-ink-900">
-						Signed in as <span class="font-medium">{{ store.user?.name }}</span> · role
-						<span class="font-medium text-ink-700">{{ store.currentRole?.name }}</span>
+						Signed in as <span class="font-semibold text-ink-950">{{ store.user?.name }}</span> · role
+						<span class="font-semibold text-ink-950">{{ store.currentRole?.name }}</span>
 						<span v-if="store.isMultiCompany && store.currentCompany">
 							· acting on
-							<span class="font-medium text-ink-700">{{
+							<span class="font-semibold text-ink-950">{{
 								store.currentCompany.shortName
 							}}</span></span
 						>
@@ -261,26 +256,20 @@ function onTileClick(tile) {
 				</div>
 			</div>
 
-			<div v-for="group in visibleGroups" :key="group.title" class="mb-6">
-				<h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink-700 mb-2">
+			<div v-for="group in visibleGroups" :key="group.title" class="mb-8">
+				<h2 class="text-xs font-bold uppercase tracking-wider text-ink-700 mb-3">
 					{{ group.title }}
 				</h2>
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 					<div
 						v-for="tile in group.tiles"
 						:key="tile.slug"
-						class="border border-ink-200 bg-white p-3"
-						:class="
-							tile.stub
-								? 'opacity-90'
-								: 'hover:border-brand-400 hover:bg-brand-50 cursor-pointer'
-						"
-						style="border-radius: 6px"
+						class="border border-ink-200 bg-white p-4 rounded-xl shadow-xs hover:shadow-md hover:border-brand-400 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
 						@click="onTileClick(tile)"
 					>
-						<div class="flex items-start gap-3">
+						<div class="flex items-start gap-3.5">
 							<div
-								class="w-9 h-9 rounded-lg bg-ink-50 text-ink-600 flex items-center justify-center flex-shrink-0"
+								class="w-10 h-10 rounded-xl bg-ink-50 group-hover:bg-brand-50 text-ink-600 group-hover:text-brand-700 flex items-center justify-center flex-shrink-0 transition-colors shadow-xs"
 							>
 								<svg
 									class="w-5 h-5"
@@ -296,16 +285,16 @@ function onTileClick(tile) {
 							</div>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
-									<div class="text-sm font-medium text-ink-900">
+									<div class="text-sm font-bold text-ink-900 group-hover:text-brand-700 transition-colors">
 										{{ tile.label }}
 									</div>
 									<span
-										v-if="!tile.stub && tile.count !== undefined"
-										class="ml-auto text-[10px] text-ink-500 tabular-nums"
+										v-if="tile.count !== undefined"
+										class="ml-auto text-[10px] text-ink-500 tabular-nums font-semibold"
 										>{{ tile.count }} {{ tile.countLabel }}</span
 									>
 								</div>
-								<div class="text-[11px] text-ink-600 mt-0.5 leading-snug">
+								<div class="text-xs text-ink-500 mt-1 leading-relaxed">
 									{{ tile.desc }}
 								</div>
 							</div>
