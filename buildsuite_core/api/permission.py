@@ -101,6 +101,14 @@ def _resource_permissions() -> dict:
 	via an ``if_owner`` DocPerm reports ``"own"`` so the SPA can keep its own-record gating
 	(edit/delete only your own drafts) that a bare boolean can't express.
 	"""
+	# Administrator is a superuser — grant full caps on every resource unconditionally.
+	if frappe.session.user == "Administrator":
+		return {
+			key: {"c": True, "r": True, "e": True, "d": True, "x": True,
+			      "writeScope": "all", "deleteScope": "all"}
+			for key in RESOURCE_DOCTYPES
+		}
+
 	out = {}
 	for key, doctype in RESOURCE_DOCTYPES.items():
 		if not frappe.db.exists("DocType", doctype):
