@@ -1,14 +1,17 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory, createWebHashHistory } from "vue-router";
 import { useSessionStore } from "@/stores/session";
 import { useDataStore } from "@/stores";
 import { usePermissions } from "@/composables/usePermissions";
 import { getDoctypePermissions } from "@/data/workspaceSettingApi";
 import { getLoginUrl } from "@/utils/session";
 import { APP_ROUTE, APP_TITLE } from "@/utils/appRoute";
+import { isMobileApp, getServerUrl } from "@/utils/mobile";
 
 // Per-route browser title (route name -> human label). Detail pages get a generic
 // label here; the view overrides it with the record name via usePageTitle.
 const PAGE_TITLES = {
+	login: "Sign In",
+	"server-url": "Server Connection",
 	"app-home": "Home",
 	dashboard: "Dashboard",
 	todo: "To-dos",
@@ -1026,6 +1029,16 @@ const routes = [
 		],
 	},
 	{
+		path: "/login",
+		name: "login",
+		component: () => import("@/views/MobileLoginView.vue"),
+	},
+	{
+		path: "/server-url",
+		name: "server-url",
+		component: () => import("@/views/MobileServerUrlView.vue"),
+	},
+	{
 		path: "/forbidden",
 		name: "forbidden",
 		component: () => import("@/views/AccessDeniedView.vue"),
@@ -1170,7 +1183,7 @@ function inferCapAction(name = "") {
 }
 
 const router = createRouter({
-	history: createWebHistory(APP_ROUTE),
+	history: isMobileApp() ? createWebHashHistory() : createWebHistory(APP_ROUTE),
 	routes,
 	scrollBehavior() {
 		return { top: 0 };
@@ -1201,13 +1214,23 @@ const GATED_REPORT_ROUTES = new Set([
 ]);
 
 router.beforeEach(async (to) => {
-	const unprotected = new Set(["forbidden"]);
+	const unprotected = new Set(["forbidden", "login", "server-url"]);
 	if (unprotected.has(to.name)) return true;
+
+	if (isMobileApp()) {
+		const serverUrl = getServerUrl();
+		if (!serverUrl) {
+			return { name: "server-url", query: { redirect: to.fullPath } };
+		}
+	}
 
 	const sessionStore = useSessionStore();
 	const access = await sessionStore.ensureAccess({ force: false });
 
 	if (!sessionStore.authenticated) {
+		if (isMobileApp()) {
+			return { name: "login", query: { redirect: to.fullPath } };
+		}
 		window.location.assign(getLoginUrl(to.fullPath));
 		return false;
 	}

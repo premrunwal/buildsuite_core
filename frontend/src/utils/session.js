@@ -76,6 +76,14 @@ export async function logout() {
 	} catch (e) {
 		/* ignore — redirect anyway */
 	}
+
+	const { isMobileApp, clearStoredAuth } = await import("./mobile");
+	if (isMobileApp()) {
+		await clearStoredAuth();
+		window.location.hash = "#/login";
+		return;
+	}
+
 	window.location.href = `${getFrappeHost()}/login`;
 }
 

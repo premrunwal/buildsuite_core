@@ -10,10 +10,19 @@ import { useSessionStore } from "./stores/session";
 import { useDataStore } from "./stores";
 import { DEV_BOOT_METHOD } from "./utils/appRoute";
 
+import {
+	isMobileApp,
+	initMobileStorage,
+	initNativeFeatures,
+	setupFetchInterceptor,
+	onSessionExpired,
+	registerHardwareBackButton,
+} from "./utils/mobile";
+
 const DEV_BOOT_URL = `/api/method/${DEV_BOOT_METHOD}`;
 
 async function hydrateDevBoot() {
-	if (!import.meta.env.DEV) return;
+	if (!import.meta.env.DEV || isMobileApp()) return;
 
 	try {
 		const response = await fetch(DEV_BOOT_URL, {
@@ -38,6 +47,12 @@ async function hydrateDevBoot() {
 }
 
 async function mountApp() {
+	if (isMobileApp()) {
+		await initMobileStorage();
+		setupFetchInterceptor();
+		await initNativeFeatures();
+	}
+
 	syncSessionFromCookie();
 	await hydrateDevBoot();
 
@@ -49,28 +64,51 @@ async function mountApp() {
 	app.use(pinia);
 
 	const sessionStore = useSessionStore(pinia);
-	await sessionStore.bootstrapSession();
-
-	// Load the REAL Company DocType before mount so the switcher / pickers have the
-	// company list + resolved active company on first paint. Guarded — a failure
-	// (e.g. backend unreachable) must not block mount; the store falls back to the
-	// seed companies in hydrate().
 	const dataStore = useDataStore(pinia);
-	try {
-		await dataStore.loadCompanies();
-	} catch (error) {
-		console.warn("[buildsuite] Failed to load companies", error);
-	}
 
-	// Load the sidebar workspaces the user may see (backend registry) before mount, so the
-	// first paint has the correct nav. Only for a user who can open the app; guarded internally.
-	if (sessionStore.access?.allowed) {
-		await dataStore.loadWorkspaces();
-		await dataStore.loadProjectSettings();
-		dataStore.loadTodoCount();
+	// On mobile first-run without a server URL, skip network boot calls until server is configured
+	const { getServerUrl } = await import("./utils/mobile");
+	const hasMobileServer = !isMobileApp() || Boolean(getServerUrl());
+
+	if (hasMobileServer) {
+		await sessionStore.bootstrapSession();
+
+		// Load the REAL Company DocType before mount so the switcher / pickers have the
+		// company list + resolved active company on first paint. Guarded — a failure
+		// (e.g. backend unreachable) must not block mount; the store falls back to the
+		// seed companies in hydrate().
+		try {
+			await dataStore.loadCompanies();
+		} catch (error) {
+			console.warn("[buildsuite] Failed to load companies", error);
+		}
+
+		// Load the sidebar workspaces the user may see (backend registry) before mount, so the
+		// first paint has the correct nav. Only for a user who can open the app; guarded internally.
+		if (sessionStore.access?.allowed) {
+			await dataStore.loadWorkspaces();
+			await dataStore.loadProjectSettings();
+			dataStore.loadTodoCount();
+		}
 	}
 
 	app.use(router);
+
+	if (isMobileApp()) {
+		onSessionExpired(() => {
+			router.push({ name: "login" });
+		});
+
+		registerHardwareBackButton((e) => {
+			const cur = router.currentRoute.value.path;
+			if (cur !== "/home" && cur !== "/login" && cur !== "/server-url" && cur !== "/") {
+				router.back();
+			} else if (e && e.canGoBack) {
+				window.history.back();
+			}
+		});
+	}
+
 	app.mount("#app");
 }
 

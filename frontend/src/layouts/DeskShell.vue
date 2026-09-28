@@ -13,6 +13,7 @@ import { getWorkspaceIconPath } from "@/utils/workspaceIcons";
 import { getDeskUrl, logout, getSessionUser } from "@/utils/session";
 import { searchPlaces, decorateRecord, decorateDoctype } from "@/data/search";
 import { commandPalette } from "@/data/searchApi";
+import { isMobileApp, getNetworkStatus, onNetworkChange } from "@/utils/mobile";
 
 const route = useRoute();
 const router = useRouter();
@@ -111,8 +112,23 @@ function onGlobalKey(e) {
 	// No preventDefault on Esc — other Esc handlers must still run.
 	if (e.key === "Escape" && searchOpen.value) closeSearch();
 }
-onMounted(() => window.addEventListener("keydown", onGlobalKey));
-onBeforeUnmount(() => window.removeEventListener("keydown", onGlobalKey));
+const isOffline = ref(false);
+let removeNetworkListener = null;
+
+onMounted(async () => {
+	window.addEventListener("keydown", onGlobalKey);
+	const status = await getNetworkStatus();
+	isOffline.value = !status.connected;
+	removeNetworkListener = onNetworkChange((st) => {
+		isOffline.value = !st.connected;
+	});
+});
+
+onBeforeUnmount(() => {
+	window.removeEventListener("keydown", onGlobalKey);
+	if (removeNetworkListener) removeNetworkListener();
+});
+
 // Mobile sidebar drawer state. The sidebar is always visible on lg+ and
 // collapses to a slide-in drawer below that breakpoint.
 const sidebarOpen = ref(false);
@@ -144,7 +160,11 @@ function closeAppMenu() {
 }
 function goToDesktop() {
 	closeAppMenu();
-	window.location.href = getDeskUrl();
+	if (isMobileApp()) {
+		window.open(getDeskUrl(), "_blank");
+	} else {
+		window.location.href = getDeskUrl();
+	}
 }
 function onLogout() {
 	closeAppMenu();
@@ -528,9 +548,21 @@ const navGroups = computed(() => {
 		</aside>
 
 		<!-- Main -->
-		<div class="flex-1 flex flex-col min-w-0">
+		<div class="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0">
+			<!-- Offline banner -->
+			<div
+				v-if="isOffline"
+				class="bg-warning-500 text-ink-950 px-4 py-1.5 text-xs font-semibold text-center flex items-center justify-center gap-2 z-50 sticky top-0 shadow-sm"
+			>
+				<svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-12.728 0m0 0l2.829-2.829m-2.829 2.829L3 21m2.829-5.657a5 5 0 010-7.072m0 0l2.829 2.829" />
+				</svg>
+				<span>Offline Mode — Changes will sync when connectivity is restored</span>
+			</div>
+
 			<header
 				class="h-12 bg-white border-b border-ink-200 px-3 sm:px-5 flex items-center sticky top-0 z-20 gap-2"
+				style="padding-top: max(env(safe-area-inset-top), 0px);"
 			>
 				<!-- Hamburger — opens the sidebar drawer on mobile -->
 				<button
@@ -675,6 +707,67 @@ const navGroups = computed(() => {
 					</transition>
 				</router-view>
 			</main>
+
+			<!-- Mobile Bottom Navigation Bar -->
+			<nav
+				class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-ink-200 flex justify-around items-center px-1 py-1 shadow-lg"
+				style="padding-bottom: max(env(safe-area-inset-bottom), 0.35rem);"
+			>
+				<RouterLink
+					to="/home"
+					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					:class="route.path === '/home' || route.path === '/' ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
+				>
+					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+					</svg>
+					<span class="text-[10px]">Home</span>
+				</RouterLink>
+
+				<RouterLink
+					to="/field-attendance"
+					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					:class="route.path.startsWith('/field-attendance') || route.path.startsWith('/labour-attendance') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
+				>
+					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+					</svg>
+					<span class="text-[10px]">Muster</span>
+				</RouterLink>
+
+				<RouterLink
+					to="/progress-entries"
+					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					:class="route.path.startsWith('/progress-entries') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
+				>
+					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+					</svg>
+					<span class="text-[10px]">Progress</span>
+				</RouterLink>
+
+				<RouterLink
+					to="/petty-cash"
+					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					:class="route.path.startsWith('/petty-cash') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
+				>
+					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+					</svg>
+					<span class="text-[10px]">Expenses</span>
+				</RouterLink>
+
+				<button
+					type="button"
+					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl text-ink-500 hover:text-ink-800"
+					@click="sidebarOpen = true"
+				>
+					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+					</svg>
+					<span class="text-[10px]">Menu</span>
+				</button>
+			</nav>
 		</div>
 
 		<!-- Search palette (⌘K) — PLACES (Go to) first, then RECORDS. One flat,

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BuildSuite</string>
+    <string name="title_activity_main">BuildSuite</string>
+    <string name="package_name">io.buildsuite.core</string>
+    <string name="custom_url_scheme">io.buildsuite.core</string>
+</resources>

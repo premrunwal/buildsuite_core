@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 import frappeui from "frappe-ui/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 // Resolve the local Frappe backend for the dev-server proxy — from VITE_FRAPPE_HOST
 // or the bench's site config — so no host/port is hardcoded in the repo. The proxy
@@ -20,14 +21,17 @@ function frappeBackend() {
 	return "http://localhost:8000";
 }
 
-export default defineConfig(({ command }) => ({
-	base: command === "build" ? "/assets/buildsuite_core/frontend/" : "/",
-	// __FRAPPE_DEV_HOST__ — the dev-only Frappe backend URL (from the bench config),
-	// used by getFrappeHost() for cross-origin login/logout/desk redirects in dev.
-	// Empty in production builds, so no host is baked into the shipped bundle.
-	define: {
-		__FRAPPE_DEV_HOST__: JSON.stringify(command === "serve" ? frappeBackend() : ""),
-	},
+export default defineConfig(({ command, mode }) => {
+	const isMobile = mode === "mobile";
+	return {
+		base: isMobile ? "./" : command === "build" ? "/assets/buildsuite_core/frontend/" : "/",
+		// __FRAPPE_DEV_HOST__ — the dev-only Frappe backend URL (from the bench config),
+		// used by getFrappeHost() for cross-origin login/logout/desk redirects in dev.
+		// Empty in production builds, so no host is baked into the shipped bundle.
+		define: {
+			__FRAPPE_DEV_HOST__: JSON.stringify(command === "serve" ? frappeBackend() : ""),
+			__IS_MOBILE_BUILD__: JSON.stringify(isMobile),
+		},
 	plugins: [
 		// lucideIcons resolves ~icons/lucide/* used inside frappe-ui components.
 		// frappeProxy / jinjaBootData / buildConfig are disabled — BuildSuite manages them separately.
@@ -38,6 +42,42 @@ export default defineConfig(({ command }) => ({
 			buildConfig: false,
 		}),
 		vue(),
+		...(!isMobile
+			? [
+					VitePWA({
+						registerType: "autoUpdate",
+						includeAssets: ["buildsuite-logo.png"],
+						manifest: {
+							name: "BuildSuite Core",
+							short_name: "BuildSuite",
+							description: "BuildSuite Core Mobile & Web",
+							theme_color: "#1A1A1A",
+							background_color: "#1A1A1A",
+							display: "standalone",
+							start_url: "/core",
+							icons: [
+								{
+									src: "/assets/buildsuite_core/frontend/buildsuite-logo.png",
+									sizes: "192x192",
+									type: "image/png",
+								},
+							],
+						},
+						workbox: {
+							navigateFallbackDenylist: [/^\/api/],
+							runtimeCaching: [
+								{
+									urlPattern: ({ url }) => !url.pathname.startsWith("/api"),
+									handler: "NetworkFirst",
+									options: {
+										cacheName: "buildsuite-static-assets",
+									},
+								},
+							],
+						},
+					}),
+			  ]
+			: []),
 	],
 	resolve: {
 		alias: [
@@ -74,7 +114,7 @@ export default defineConfig(({ command }) => ({
 				find: "frappe-ui-file-upload-handler",
 				replacement: path.resolve(
 					__dirname,
-					"./node_modules/frappe-ui/src/utils/fileUploadHandler.ts"
+					"./src/utils/mobileFileUploadHandler.js"
 				),
 			},
 			// frappe-ui imports feather-icons as a default export, but modern ESM
@@ -96,9 +136,11 @@ export default defineConfig(({ command }) => ({
 		include: ["debug"],
 	},
 	build: {
-		outDir: path.resolve(__dirname, "../buildsuite_core/public/frontend"),
+		outDir: isMobile
+			? path.resolve(__dirname, "./dist-mobile")
+			: path.resolve(__dirname, "../buildsuite_core/public/frontend"),
 		emptyOutDir: true,
-		manifest: "manifest.json",
+		manifest: isMobile ? false : "manifest.json",
 		sourcemap: true,
 	},
 	server: {
@@ -114,4 +156,5 @@ export default defineConfig(({ command }) => ({
 			},
 		},
 	},
-}));
+};
+});
