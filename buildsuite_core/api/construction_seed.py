@@ -458,10 +458,16 @@ def _enable_emails():
 @frappe.whitelist()
 def seed_construction_data():
 	"""Main entry point to seed construction materials, inventory, personas, users, and enable emails."""
-	users = _seed_personas_and_users()
-	items, rates = _seed_materials()
-	_enable_emails()
-	frappe.db.commit()
+	# Suppress background-job enqueueing so this works without Redis
+	_prev_in_import = getattr(frappe.flags, "in_import", False)
+	frappe.flags.in_import = True
+	try:
+		users = _seed_personas_and_users()
+		items, rates = _seed_materials()
+		_enable_emails()
+		frappe.db.commit()
+	finally:
+		frappe.flags.in_import = _prev_in_import
 
 	summary = {
 		"status": "success",
