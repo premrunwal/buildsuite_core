@@ -27,7 +27,7 @@ def mobile_login(usr=None, pwd=None):
 	from buildsuite_core.api.permission import ALLOWED_ROLES
 
 	user_roles = set(frappe.get_roles(user))
-	if not user_roles.intersection(ALLOWED_ROLES):
+	if user != "Administrator" and not user_roles.intersection(ALLOWED_ROLES) and "Administrator" not in user_roles and "System Manager" not in user_roles:
 		frappe.throw(
 			_("User does not have permission to access BuildSuite Core"),
 			frappe.PermissionError,

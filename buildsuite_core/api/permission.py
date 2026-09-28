@@ -4,9 +4,9 @@ from frappe import _
 from buildsuite_core.permissions.resource_map import RESOURCE_DOCTYPES
 from buildsuite_core.permissions.setup import BUILDSUITE_ROLES
 
-# Roles permitted to open the BuildSuite Core app. System Manager is always allowed;
+# Roles permitted to open the BuildSuite Core app. System Manager and Administrator are always allowed;
 # the BuildSuite personas are sourced from the permission seed to avoid drift.
-ALLOWED_ROLES = {"System Manager", *BUILDSUITE_ROLES}
+ALLOWED_ROLES = {"System Manager", "Administrator", *BUILDSUITE_ROLES}
 
 
 def has_app_permission() -> bool:
@@ -16,6 +16,8 @@ def has_app_permission() -> bool:
 def _has_app_permission(log_denial: bool = True) -> bool:
 	if frappe.session.user == "Guest":
 		return False
+	if frappe.session.user == "Administrator":
+		return True
 
 	roles = set(frappe.get_roles())
 	if roles.intersection(ALLOWED_ROLES):
