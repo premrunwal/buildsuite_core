@@ -2,6 +2,28 @@ import frappe
 from frappe import _
 
 
+def _get_or_generate_api_keys(user):
+	"""Safely get or generate api_key and api_secret for a user."""
+	user_doc = frappe.get_doc("User", user)
+	api_key = user_doc.api_key
+	api_secret = None
+
+	if api_key:
+		try:
+			api_secret = user_doc.get_password("api_secret")
+		except Exception:
+			api_secret = None
+
+	if not api_key or not api_secret:
+		api_key = frappe.generate_hash(length=15)
+		api_secret = frappe.generate_hash(length=15)
+		frappe.db.set_value("User", user, "api_key", api_key, update_modified=False)
+		user_doc.set_password("api_secret", api_secret)
+		frappe.db.commit()
+
+	return api_key, api_secret
+
+
 @frappe.whitelist(allow_guest=True, methods=["POST"])
 def mobile_login(usr=None, pwd=None):
 	"""Single-request authentication endpoint for mobile app.
@@ -39,28 +61,12 @@ def mobile_login(usr=None, pwd=None):
 		)
 
 	user_doc = frappe.get_doc("User", user)
-	api_secret = None
-
-	if not user_doc.api_key:
-		user_doc.set_api_key()
-		api_secret = user_doc.set_api_secret()
-		user_doc.save(ignore_permissions=True)
-	else:
-		try:
-			api_secret = user_doc.get_password("api_secret")
-		except Exception:
-			api_secret = None
-
-		if not api_secret:
-			api_secret = user_doc.set_api_secret()
-			user_doc.save(ignore_permissions=True)
-
-	frappe.db.commit()
+	api_key, api_secret = _get_or_generate_api_keys(user)
 
 	return {
 		"user": user,
 		"full_name": user_doc.full_name or user,
-		"api_key": user_doc.api_key,
+		"api_key": api_key,
 		"api_secret": api_secret,
 	}
 
@@ -87,27 +93,11 @@ def get_or_create_api_keys():
 		)
 
 	user_doc = frappe.get_doc("User", user)
-	api_secret = None
-
-	if not user_doc.api_key:
-		user_doc.set_api_key()
-		api_secret = user_doc.set_api_secret()
-		user_doc.save(ignore_permissions=True)
-	else:
-		try:
-			api_secret = user_doc.get_password("api_secret")
-		except Exception:
-			api_secret = None
-
-		if not api_secret:
-			api_secret = user_doc.set_api_secret()
-			user_doc.save(ignore_permissions=True)
-
-	frappe.db.commit()
+	api_key, api_secret = _get_or_generate_api_keys(user)
 
 	return {
 		"user": user,
 		"full_name": user_doc.full_name or user,
-		"api_key": user_doc.api_key,
+		"api_key": api_key,
 		"api_secret": api_secret,
 	}
