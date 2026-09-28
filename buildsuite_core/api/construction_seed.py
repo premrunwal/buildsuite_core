@@ -458,8 +458,10 @@ def _enable_emails():
 @frappe.whitelist()
 def seed_construction_data():
 	"""Main entry point to seed construction materials, inventory, personas, users, and enable emails."""
-	# Suppress background-job enqueueing so this works without Redis
-	_prev_in_import = getattr(frappe.flags, "in_import", False)
+	# Monkey-patch frappe.enqueue to a no-op so User.on_update's
+	# create_contact enqueue doesn't crash when Redis isn't running.
+	_original_enqueue = frappe.enqueue
+	frappe.enqueue = lambda *args, **kwargs: None
 	frappe.flags.in_import = True
 	try:
 		users = _seed_personas_and_users()
@@ -467,7 +469,8 @@ def seed_construction_data():
 		_enable_emails()
 		frappe.db.commit()
 	finally:
-		frappe.flags.in_import = _prev_in_import
+		frappe.enqueue = _original_enqueue
+		frappe.flags.in_import = False
 
 	summary = {
 		"status": "success",
