@@ -110,7 +110,9 @@ const ALL_ACTIONS = [
 	{ key:'fin-petty',     label:'Petty Cash',          to:'/project-finance/petty-cash',    icon:'hand-coins',     roles:['accountant','director','site-engineer','foreman'] },
 	{ key:'fin-expenses',  label:'Expenses',            to:'/project-finance/expenses',      icon:'receipt',        roles:['director','site-engineer','foreman'] },
 	{ key:'fin-overview',  label:'Financial Overview',  to:'/project-finance/overview',      icon:'wallet',         roles:['director'] },
-	{ key:'wf-attendance', label:'Field Attendance',    to:'/field-attendance',              icon:'users-2',        roles:['foreman','hr-manager','site-engineer'] },
+	{ key:'daily-logs',    label:'Daily Logs',          to:'/daily-logs',                    icon:'file-text',      roles:['director','pm','site-engineer','foreman','admin','bsa'] },
+	{ key:'site-photos',   label:'Site Photos',         to:'/site-photos',                   icon:'camera',         roles:['director','pm','site-engineer','foreman','admin','bsa'] },
+	{ key:'wf-attendance', label:'Field Attendance',    to:'/field-attendance',              icon:'users-2',        roles:['foreman','hr-manager','site-engineer','admin','bsa'] },
 	{ key:'wf-employees',  label:'Field Employees',     to:'/field-employees',               icon:'hard-hat',       roles:['hr-manager'] },
 	{ key:'wf-crews',      label:'Crews',               to:'/crews',                         icon:'users-2',        roles:['foreman','hr-manager'] },
 	{ key:'wf-labour',     label:'Labour Register',     to:'/labour-attendance',             icon:'clipboard-list', roles:['hr-manager'] },
@@ -123,7 +125,7 @@ const ALL_ACTIONS = [
 ];
 // Site roles re-sort their tiles by daily frequency.
 const SITE_ROLES = ["site-engineer", "foreman"];
-const SITE_ACTION_ORDER = ["wf-attendance","progress-new","tasks","consumption","grn-new","mrs","fin-petty","fin-expenses","stages","schedule","projects"];
+const SITE_ACTION_ORDER = ["wf-attendance","daily-logs","site-photos","progress-new","tasks","consumption","grn-new","mrs","fin-petty","fin-expenses","stages","schedule","projects"];
 const quickActions = computed(() => {
 	const list = ALL_ACTIONS.filter((a) => a.roles.includes(store.role));
 	if (!SITE_ROLES.includes(store.role)) return list;
@@ -156,18 +158,20 @@ const quickActions = computed(() => {
 		</div>
 
 		<!-- Snapshot + CTA -->
-		<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 			<section
-				class="lg:col-span-2 bg-white border border-ink-200 rounded-lg overflow-hidden"
+				class="lg:col-span-2 bg-white border border-ink-200/80 rounded-xl overflow-hidden shadow-xs hover:shadow-sm transition-shadow duration-200"
 			>
 				<header
-					class="px-5 py-3 bg-gradient-to-r from-brand-50 to-white border-b border-ink-100 flex items-center justify-between"
+					class="px-5 py-3.5 bg-gradient-to-r from-brand-50/70 via-white to-white border-b border-ink-100 flex items-center justify-between"
 				>
-					<h2 class="text-sm font-semibold text-ink-900">Today's snapshot</h2>
+					<div class="flex items-center gap-2">
+						<h2 class="text-xs uppercase tracking-wider font-bold text-ink-800">Today's Snapshot</h2>
+					</div>
 					<span
-						class="text-[10px] uppercase tracking-wider font-medium text-success-700 bg-success-50 px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+						class="text-[10px] uppercase tracking-wider font-bold text-success-700 bg-success-50 border border-success-200/60 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5"
 					>
-						<span class="w-1.5 h-1.5 rounded-full bg-success-500"></span>
+						<span class="w-1.5 h-1.5 rounded-full bg-success-500 animate-pulse"></span>
 						Live
 					</span>
 				</header>
@@ -178,16 +182,16 @@ const quickActions = computed(() => {
 							v-for="m in snapshot"
 							:key="m.label"
 							:to="m.to || undefined"
-							class="block -m-2 p-2 rounded-lg"
-							:class="m.to ? 'cursor-pointer hover:bg-ink-50 transition-colors' : ''"
+							class="block p-3 rounded-xl border border-transparent hover:border-ink-200 hover:bg-ink-50/60 hover:-translate-y-0.5 transition-all duration-200"
+							:class="m.to ? 'cursor-pointer' : ''"
 						>
 							<div
-								class="w-11 h-11 rounded-lg flex items-center justify-center mb-3"
+								class="w-10 h-10 rounded-lg flex items-center justify-center mb-3 transition-transform duration-200 group-hover:scale-105"
 								:class="toneClass(m.tone)"
 							>
 								<svg
-									width="22"
-									height="22"
+									width="20"
+									height="20"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -199,13 +203,13 @@ const quickActions = computed(() => {
 								/>
 							</div>
 							<div
-								class="font-semibold text-ink-900 tabular-nums leading-none"
+								class="font-bold text-ink-900 tabular-nums leading-none tracking-tight"
 								:class="m.format === 'currency' ? 'text-2xl' : 'text-3xl'"
 							>
 								{{ tileValue(m) }}
 							</div>
 							<div
-								class="text-[10px] uppercase tracking-wider text-ink-500 font-medium mt-2"
+								class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mt-2 truncate"
 							>
 								{{ m.label }}
 							</div>
@@ -217,15 +221,15 @@ const quickActions = computed(() => {
 			<RouterLink
 				v-if="cta"
 				:to="cta.to"
-				class="bg-brand-50 hover:bg-brand-100 rounded-lg p-5 flex flex-col justify-between transition-colors group"
+				class="bg-gradient-to-br from-brand-50 to-brand-100/60 border border-brand-200/80 hover:border-brand-300 hover:shadow-md rounded-xl p-5 flex flex-col justify-between transition-all duration-200 group"
 			>
 				<div class="flex items-start gap-3">
 					<div
-						class="w-9 h-9 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center flex-shrink-0"
+						class="w-10 h-10 rounded-lg bg-brand-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs group-hover:scale-105 transition-transform"
 					>
 						<svg
-							width="18"
-							height="18"
+							width="20"
+							height="20"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -237,30 +241,30 @@ const quickActions = computed(() => {
 						/>
 					</div>
 					<div class="min-w-0">
-						<h2 class="text-base font-semibold text-ink-900 leading-tight">
+						<h2 class="text-base font-bold text-ink-900 leading-tight group-hover:text-brand-800 transition-colors">
 							{{ cta.title }}
 						</h2>
 						<p class="text-xs text-ink-600 mt-1.5 leading-snug">{{ cta.sub }}</p>
 					</div>
 				</div>
 				<div
-					class="mt-4 inline-flex items-center gap-1.5 bg-brand-600 group-hover:bg-brand-700 text-white text-xs font-medium px-2.5 py-1.5 rounded-md self-start transition-colors"
+					class="mt-5 inline-flex items-center gap-1.5 bg-brand-600 group-hover:bg-brand-700 active:scale-98 text-white text-xs font-semibold px-3 py-2 rounded-lg self-start transition-all shadow-xs"
 				>
-					{{ cta.cta }} <span aria-hidden="true">→</span>
+					{{ cta.cta }} <span aria-hidden="true" class="group-hover:translate-x-0.5 transition-transform">→</span>
 				</div>
 			</RouterLink>
 		</div>
 
 		<!-- Alert cards -->
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-8">
 			<RouterLink
 				v-for="a in alerts"
 				:key="a.key"
 				:to="a.to"
-				class="bg-white border border-ink-200 hover:border-brand-400 rounded-lg p-4 flex items-center gap-3 transition-colors group"
+				class="bg-white border border-ink-200/80 hover:border-brand-300 hover:shadow-sm rounded-xl p-4 flex items-center gap-3.5 hover:-translate-y-0.5 transition-all duration-200 group"
 			>
 				<div
-					class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+					class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-xs"
 					:class="toneClass(a.tone)"
 				>
 					<svg
@@ -277,11 +281,11 @@ const quickActions = computed(() => {
 					/>
 				</div>
 				<div class="flex-1 min-w-0">
-					<div class="text-sm font-semibold text-ink-900">{{ a.title }}</div>
-					<div class="text-xs text-ink-500 mt-0.5 truncate">{{ a.sub }}</div>
+					<div class="text-xs font-bold text-ink-900 group-hover:text-brand-700 transition-colors">{{ a.title }}</div>
+					<div class="text-[11px] text-ink-500 mt-0.5 truncate">{{ a.sub }}</div>
 				</div>
 				<div
-					class="text-xs text-brand-700 group-hover:text-brand-800 font-medium flex-shrink-0"
+					class="text-xs text-brand-700 group-hover:text-brand-800 font-semibold flex-shrink-0 group-hover:translate-x-0.5 transition-transform"
 				>
 					View →
 				</div>
@@ -290,16 +294,19 @@ const quickActions = computed(() => {
 
 		<!-- Quick actions -->
 		<div class="mb-6">
-			<h2 class="text-sm font-semibold text-ink-900 mb-3">Quick actions</h2>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+			<div class="flex items-center justify-between mb-3.5">
+				<h2 class="text-xs uppercase tracking-wider font-bold text-ink-700">Quick Actions</h2>
+				<span class="text-[11px] text-ink-400 font-medium">Site Engineer Tools</span>
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
 				<RouterLink
 					v-for="action in quickActions"
 					:key="action.to"
 					:to="action.to"
-					class="bg-white border border-ink-200 hover:border-brand-400 hover:shadow-sm p-4 rounded-lg flex items-center gap-3 group transition-all"
+					class="bg-white border border-ink-200/80 hover:border-brand-400 hover:shadow-md p-4 rounded-xl flex items-center gap-3.5 group hover:-translate-y-0.5 transition-all duration-200"
 				>
 					<div
-						class="w-10 h-10 rounded-lg bg-ink-50 group-hover:bg-brand-50 text-ink-600 group-hover:text-brand-700 flex items-center justify-center flex-shrink-0 transition-colors"
+						class="w-10 h-10 rounded-xl bg-ink-50 group-hover:bg-brand-50 text-ink-600 group-hover:text-brand-700 flex items-center justify-center flex-shrink-0 transition-colors shadow-xs"
 					>
 						<svg
 							width="20"
@@ -316,12 +323,12 @@ const quickActions = computed(() => {
 					</div>
 					<div class="flex-1 min-w-0">
 						<div
-							class="text-sm font-medium text-ink-900 group-hover:text-brand-700 transition-colors"
+							class="text-xs font-semibold text-ink-900 group-hover:text-brand-700 transition-colors"
 						>
 							{{ action.label }}
 						</div>
 					</div>
-					<div class="text-ink-300 group-hover:text-brand-500 transition-colors">→</div>
+					<div class="text-ink-300 group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all">→</div>
 				</RouterLink>
 			</div>
 		</div>

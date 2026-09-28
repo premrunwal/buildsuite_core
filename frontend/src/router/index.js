@@ -98,6 +98,9 @@ const PAGE_TITLES = {
 	"field-attendance": "Field Attendance",
 	"field-attendance-new": "New Field Attendance",
 	"field-attendance-detail": "Field Attendance",
+	"daily-logs": "Daily Logs",
+	"daily-log-new": "File Daily Log",
+	"site-photos": "Site Photos",
 	"labour-attendance": "Labour Attendance Register",
 	"overtime-attendance": "Overtime Attendance Register",
 	"attendance-summary": "Site Attendance Summary",
@@ -720,6 +723,21 @@ const routes = [
 				name: "field-attendance-detail",
 				component: () => import("@/views/FieldAttendanceDetailView.vue"),
 				props: true,
+			},
+			{
+				path: "daily-logs",
+				name: "daily-logs",
+				component: () => import("@/views/DailyLogsView.vue"),
+			},
+			{
+				path: "daily-logs/new",
+				name: "daily-log-new",
+				component: () => import("@/views/NewDailyLogView.vue"),
+			},
+			{
+				path: "site-photos",
+				name: "site-photos",
+				component: () => import("@/views/SitePhotosView.vue"),
 			},
 			{
 				path: "labour-attendance",

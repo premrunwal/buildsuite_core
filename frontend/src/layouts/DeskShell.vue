@@ -710,12 +710,12 @@ const navGroups = computed(() => {
 
 			<!-- Mobile Bottom Navigation Bar -->
 			<nav
-				class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-ink-200 flex justify-around items-center px-1 py-1 shadow-lg"
+				class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-ink-200 flex justify-around items-center px-1 py-1 shadow-lg"
 				style="padding-bottom: max(env(safe-area-inset-bottom), 0.35rem);"
 			>
 				<RouterLink
 					to="/home"
-					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					class="flex flex-col items-center justify-center py-1 px-2.5 min-w-[50px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
 					:class="route.path === '/home' || route.path === '/' ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
 				>
 					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -726,7 +726,7 @@ const navGroups = computed(() => {
 
 				<RouterLink
 					to="/field-attendance"
-					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					class="flex flex-col items-center justify-center py-1 px-2.5 min-w-[50px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
 					:class="route.path.startsWith('/field-attendance') || route.path.startsWith('/labour-attendance') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
 				>
 					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -736,30 +736,30 @@ const navGroups = computed(() => {
 				</RouterLink>
 
 				<RouterLink
-					to="/progress-entries"
-					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
-					:class="route.path.startsWith('/progress-entries') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
+					to="/daily-logs"
+					class="flex flex-col items-center justify-center py-1 px-2.5 min-w-[50px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					:class="route.path.startsWith('/daily-logs') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
 				>
 					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 					</svg>
-					<span class="text-[10px]">Progress</span>
+					<span class="text-[10px]">Logs</span>
 				</RouterLink>
 
 				<RouterLink
-					to="/petty-cash"
-					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
-					:class="route.path.startsWith('/petty-cash') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
+					to="/site-photos"
+					class="flex flex-col items-center justify-center py-1 px-2.5 min-w-[50px] min-h-[44px] text-xs font-medium rounded-xl transition-colors"
+					:class="route.path.startsWith('/site-photos') ? 'text-brand-600' : 'text-ink-500 hover:text-ink-800'"
 				>
 					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
 					</svg>
-					<span class="text-[10px]">Expenses</span>
+					<span class="text-[10px]">Photos</span>
 				</RouterLink>
 
 				<button
 					type="button"
-					class="flex flex-col items-center justify-center py-1.5 px-3 min-w-[56px] min-h-[44px] text-xs font-medium rounded-xl text-ink-500 hover:text-ink-800"
+					class="flex flex-col items-center justify-center py-1 px-2.5 min-w-[50px] min-h-[44px] text-xs font-medium rounded-xl text-ink-500 hover:text-ink-800"
 					@click="sidebarOpen = true"
 				>
 					<svg class="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
