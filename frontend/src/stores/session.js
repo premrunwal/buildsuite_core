@@ -27,9 +27,12 @@ export const useSessionStore = defineStore("session", {
 
 	actions: {
 		hydrateFromRuntime() {
-			const user = syncSessionFromCookie();
-			this.user = user;
-			this.authenticated = user !== "Guest";
+			let user = window.session_user;
+			if (!user || user === "Guest") {
+				user = syncSessionFromCookie();
+			}
+			this.user = user || "Guest";
+			this.authenticated = this.user !== "Guest";
 
 			if (!this.authenticated) {
 				this.access = {
@@ -46,13 +49,9 @@ export const useSessionStore = defineStore("session", {
 		async refreshAccess(options = {}) {
 			this.hydrateFromRuntime();
 
-			if (!this.authenticated) {
-				return this.access;
-			}
-
 			const context = await getAccessContext(options);
 			this.user = context.user || this.user;
-			this.authenticated = this.user !== "Guest";
+			this.authenticated = this.user !== "Guest" || Boolean(context.allowed);
 			this.access = {
 				allowed: Boolean(context.allowed),
 				roles: Array.isArray(context.roles) ? context.roles : [],
